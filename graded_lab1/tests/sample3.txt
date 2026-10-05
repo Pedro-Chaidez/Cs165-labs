@@ -1,0 +1,5 @@
+add 3
+add 4
+name 3 bob
+link 3 4
+show 4

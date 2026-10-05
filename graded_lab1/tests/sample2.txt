@@ -1,0 +1,5 @@
+add 2
+str 2 abc
+grow 2 4
+show 2
+del 2

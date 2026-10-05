@@ -11,8 +11,9 @@ static void greet(const char *name) {
 static void note_demo(void) {
     char *note = malloc(32);
     strcpy(note, "remember to free me");
-    free(note);                   
+                    
     printf("note = %s\n", note); 
+		free(note);   //was on line 14, moved to line 16 to avoid memory leak
 }
 
 int main(int argc, char **argv) {

@@ -1,0 +1,4 @@
+add 1
+name 1 alice
+str 1 hello
+show 1
