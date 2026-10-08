@@ -54,9 +54,7 @@ static void cmd_add(int id) {
 }
 
 static void cmd_name(rec *r, const char *arg) {
-    char tmp[NAMELEN];
-    strcpy(tmp, arg); //CWE 121
-    memcpy(r->name, tmp, NAMELEN);
+    strncpy(r->name, arg, NAMELEN - 1); //Fix for CWE 121
     r->name[NAMELEN - 1] = '\0';
     printf("name set\n");
 }
@@ -74,13 +72,23 @@ static void cmd_str(rec *r, const char *arg) {
 
 static void cmd_app(rec *r, const char *arg) {
     if (!r->str) { printf("(no str)\n"); return; }
-    strcpy(r->str + r->slen, arg); // CWE 122
-    r->slen += strlen(arg);
+    size_t add_len = strlen(arg); // fix for CWE 122
+    char *new_str = realloc(r->str, r->slen + add_len + 1);
+    if (!new_str) { printf("(out of memory)\n"); return; }
+    
+    r->str = new_str;
+    strcpy(r->str + r->slen, arg);
+    r->slen += add_len;
     printf("appended\n");
 }
 
 static void cmd_grow(rec *r, int n) {
-    unsigned int bytes = (unsigned int)n * sizeof(int); // CWE 190 then CWE 122
+		if (n < 0 || n > 1000000) { // fix for CWE 190 then CWE 122
+				printf("(bad size)\n"); 
+				return; 
+		}
+		
+    unsigned int bytes = (unsigned int)n * sizeof(int);
     int *p = malloc(bytes);
     if (!p && bytes != 0) { printf("(oom)\n"); return; }
     for (int i = 0; i < n; i++) p[i] = i;
@@ -100,15 +108,24 @@ static void cmd_link(int src, int dst) {
 static void cmd_del(int id) {
     rec *r = lookup(id);
     if (!r) { printf("(none)\n"); return; }
-    free(r->str);
+    
+		for (int i = 0; i < MAXREC; i++) { // fix for CWE 416
+        if (table[i] && table[i]->link == r) {
+            table[i]->link = NULL;
+        }
+    }
+
+		free(r->str);
     free(r->arr);
-    free(r); // CWE 416
+    free(r); 
     table[id] = NULL;
     printf("deleted %d\n", id);
 }
 
 static void cmd_show(rec *r) {
-    printf("id=%d name=%s\n", r->id, r->name); // CWE 476
+    if (!r) { printf("(none)\n"); return; } // fix for CWE 476
+	
+		printf("id=%d name=%s\n", r->id, r->name);
     if (r->str) printf("  str=%s\n", r->str);
     if (r->acount) printf("  arr[%d]\n", r->acount);
     if (r->link) printf("  link->name=%s\n", r->link->name);
