@@ -1,0 +1,7 @@
+add 1
+str 1 hello
+add 2
+str 2 helloh
+add 3
+str 3 hello
+app 3 h

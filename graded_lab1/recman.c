@@ -50,12 +50,12 @@ static void cmd_add(int id) {
     r->id = id;
     r->used = 1;
     table[id] = r;
-    printf("added %d\n", id);
+    printf("add %d\n", id);
 }
 
 static void cmd_name(rec *r, const char *arg) {
     char tmp[NAMELEN];
-    strcpy(tmp, arg);
+    strcpy(tmp, arg); //CWE 121
     memcpy(r->name, tmp, NAMELEN);
     r->name[NAMELEN - 1] = '\0';
     printf("name set\n");
@@ -74,13 +74,13 @@ static void cmd_str(rec *r, const char *arg) {
 
 static void cmd_app(rec *r, const char *arg) {
     if (!r->str) { printf("(no str)\n"); return; }
-    strcpy(r->str + r->slen, arg);
+    strcpy(r->str + r->slen, arg); // CWE 122
     r->slen += strlen(arg);
     printf("appended\n");
 }
 
 static void cmd_grow(rec *r, int n) {
-    unsigned int bytes = (unsigned int)n * sizeof(int);
+    unsigned int bytes = (unsigned int)n * sizeof(int); // CWE 190 then CWE 122
     int *p = malloc(bytes);
     if (!p && bytes != 0) { printf("(oom)\n"); return; }
     for (int i = 0; i < n; i++) p[i] = i;
@@ -102,13 +102,13 @@ static void cmd_del(int id) {
     if (!r) { printf("(none)\n"); return; }
     free(r->str);
     free(r->arr);
-    free(r);
+    free(r); // CWE 416
     table[id] = NULL;
     printf("deleted %d\n", id);
 }
 
 static void cmd_show(rec *r) {
-    printf("id=%d name=%s\n", r->id, r->name);
+    printf("id=%d name=%s\n", r->id, r->name); // CWE 476
     if (r->str) printf("  str=%s\n", r->str);
     if (r->acount) printf("  arr[%d]\n", r->acount);
     if (r->link) printf("  link->name=%s\n", r->link->name);
