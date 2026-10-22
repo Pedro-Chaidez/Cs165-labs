@@ -1,0 +1,73 @@
+/* CS 165 Lab 2 (graded): Controlled Buffer Overflow — hardened target.
+ * Build @@BUILD_ID@@.  This program is INTENTIONALLY vulnerable for this lab.
+ *
+ * vault runs in two phases on standard input:
+ *   Phase 1: it reads a one-line "name" and greets you.
+ *   Phase 2: it reads a length-prefixed binary "request" and checks it.
+ *
+ * There are TWO deliberate bugs, and the build turns the stack canary ON.
+ * A harmless win() prints a build-specific token but is never called.
+ */
+#include <stdio.h>
+#include <string.h>
+
+#define NOTE_SIZE @@NOTE_SIZE@@
+#define PAD_WORDS @@PAD_WORDS@@
+#define NAME_SIZE 64
+#define MAX_REQUEST 512
+
+static void win(void) __attribute__((noinline, used));
+
+static void win(void) {
+    puts("LAB2-WIN:@@WIN_TOKEN@@");
+    fflush(stdout);
+}
+
+static void greet(const char *name) {
+    char buf[@@GREET_BUF@@];
+    memset(buf, 0, sizeof buf);
+    strncpy(buf, name, sizeof buf - 1);
+    printf("hello, ");
+    printf(buf);                       
+    printf("\n");
+    fflush(stdout);
+}
+
+static void check_request(const unsigned char *input, size_t len) {
+    volatile unsigned long padding[PAD_WORDS];
+    char note[NOTE_SIZE];
+
+    memset((void *)padding, 0, sizeof(padding));
+    if (len < 4) { puts("(malformed request)"); return; }
+
+    memcpy(note, input, len);          
+
+    if (memcmp(note, "OPEN", 4) == 0) puts("request accepted");
+    else puts("request rejected");
+}
+
+static size_t read_u16_len(void) {
+    unsigned char b[2];
+    if (fread(b, 1, 2, stdin) != 2) return 0;
+    return (size_t)b[0] | ((size_t)b[1] << 8);
+}
+
+int main(void) {
+    char name[NAME_SIZE];
+    unsigned char req[MAX_REQUEST];
+
+    printf("vault build @@BUILD_ID@@\n");
+    fflush(stdout);
+
+    /* Phase 1: name line -> greet() (format-string bug). */
+    if (fgets(name, sizeof(name), stdin) == NULL) return 0;
+    name[strcspn(name, "\n")] = '\0';
+    greet(name);
+
+    /* Phase 2: <2-byte length><request bytes> -> check_request() (overflow). */
+    size_t len = read_u16_len();
+    if (len > sizeof(req)) len = sizeof(req);
+    size_t got = fread(req, 1, len, stdin);
+    check_request(req, got);
+    return 0;
+}
