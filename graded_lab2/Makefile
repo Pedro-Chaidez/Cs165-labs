@@ -24,5 +24,7 @@ test: vault
 
 clean:
 	rm -f vault payload.bin
+tar:
+	tar czf lab2-submission.tgz vault.c exploit.py writeup.md
 
 .PHONY: all test clean
