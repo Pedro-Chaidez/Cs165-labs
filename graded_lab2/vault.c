@@ -28,7 +28,7 @@ static void greet(const char *name) {
     memset(buf, 0, sizeof buf);
     strncpy(buf, name, sizeof buf - 1);
     printf("hello, ");
-    printf(buf);                       
+    printf("%s", buf);  // Bug 1 fix, used to be just printf(buf) which is a format string vulnerability
     printf("\n");
     fflush(stdout);
 }
@@ -39,7 +39,10 @@ static void check_request(const unsigned char *input, size_t len) {
 
     memset((void *)padding, 0, sizeof(padding));
     if (len < 4) { puts("(malformed request)"); return; }
-
+		
+    if (len > sizeof(note)) {// Bug 2 fix, inserted this to prevent buffer overflow
+        len = sizeof(note); 
+    }
     memcpy(note, input, len);          
 
     if (memcmp(note, "OPEN", 4) == 0) puts("request accepted");
