@@ -1,0 +1,12 @@
+# Tokens from the teaching packet format.
+header="PKT1;"
+type_text="TYPE=TEXT;"
+type_number="TYPE=NUMBER;"
+type_meta="TYPE=META;"
+action_show="ACTION=SHOW;"
+action_count="ACTION=COUNT;"
+action_store="ACTION=STORE;"
+auth_no="AUTH=NO;"
+auth_yes="AUTH=YES;"
+data="DATA="
+course="CS165"
