@@ -26,10 +26,10 @@ memcpy(note, input, len);
 
 # 3. The Four Values and Discovery
 
-* **WIN (0x401296):** The static, non-PIE address of `win()`, found via `print &win`.
-* **OFF_CANARY (56):** The offset from the `note` buffer (`0x7fffffffd810`) to the canary (`0x7fffffffd848`), calculated as `0x38` (56 bytes).
-* **OFF_RETADDR (72):** The offset from `note` to the saved return address (`$rbp+8`). Calculated via `(char*)($rbp+8) - (char*)note`.
-* **LEAK_INDEX (25):** Supplying `%25$p` in phase 1 successfully leaked the randomized, 8-byte canary ending in `00`.
+* **WIN (0x401296):** The static, non-PIE address of win(), found via print &win.
+* **OFF_CANARY (56):** The offset from the note buffer (0x7fffffffd810) to the canary (0x7fffffffd848), calculated as 0x38 (56 bytes).
+* **OFF_RETADDR (72):** The offset from note to the saved return address ($rbp+8). Calculated via (char*)($rbp+8) - (char*)note.
+* **LEAK_INDEX (25):** Supplying %25$p in phase 1 successfully leaked the randomized, 8-byte canary ending in 00.
 
 **Debugger Transcript:**
 
@@ -60,4 +60,4 @@ hello, 0xb45aa04f08219f00
 
 # 4. Defeating the Stack Protector
 
-The stack protector places a randomized canary before the saved return address to detect overflows. We defeat this by first exploiting the format string bug to leak the live canary value. We then construct our buffer overflow payload to write this exact leaked value back into the canary slot. Because the value is unaltered, the security check passes, allowing the program to safely jump to our overwritten return address (`WIN`).
+The stack protector places a randomized canary before the saved return address to detect overflows. We defeat this by first exploiting the format string bug to leak the live canary value. We then construct our buffer overflow payload to write this exact leaked value back into the canary slot. Because the value is unaltered, the security check passes, allowing the program to safely jump to our overwritten return address (WIN).
