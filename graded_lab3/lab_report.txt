@@ -1,0 +1,64 @@
+CS 165 Graded Lab 3 Report
+
+Student name:
+Net ID:
+
+1. Program understanding
+
+Describe the input format and the main branches in the parser.
+
+
+2. Harness
+
+Explain what your harness passes to the parser and why the harness is suitable
+for repeated in-process execution.
+
+
+3. Seed corpus
+
+List your initial seed files and explain which parser behavior each seed targets.
+
+
+4. Fuzzing without a dictionary
+
+Run duration:
+Final cov:
+Final ft:
+Final corpus size:
+Crash artifacts produced:
+
+
+5. Fuzzing with a dictionary
+
+Run duration:
+Final cov:
+Final ft:
+Final corpus size:
+Crash artifacts produced:
+
+
+6. Crash investigation
+
+For each unique crash, identify the sanitizer finding and the relevant function.
+Explain how you reproduced the crash outside a fuzzing campaign.
+
+
+7. Crash minimization
+
+Original crash size:
+Minimized crash size:
+Explain which parts of the minimized input are required to reach the bug.
+
+
+8. Corpus minimization
+
+Corpus size before minimization:
+Corpus size after minimization:
+Explain what the minimized corpus preserves.
+
+
+9. Program fix
+
+Describe the code change and explain why it prevents the memory error while
+preserving the intended operation. Summarize your regression-test and final
+sanitizer results.
