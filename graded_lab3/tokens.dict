@@ -1,1 +1,25 @@
 # Add useful image-message tokens here before the dictionary-assisted run.
+header="IMG2;"
+sep=";"
+eq="="
+
+key_fmt="FMT="
+key_op="OP="
+key_auth="AUTH="
+key_w="W="
+key_h="H="
+key_data="DATA="
+
+fmt_gray="GRAY"
+fmt_rgb="RGB"
+fmt_meta="META"
+
+op_info="INFO"
+op_check="CHECK"
+op_thumb="THUMB"
+
+auth_yes="YES"
+auth_no="NO"
+
+meta_prefix="CS165:"
+dim_max="64"

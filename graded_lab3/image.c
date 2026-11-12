@@ -117,8 +117,7 @@ static int create_thumbnail(size_t width, size_t height, size_t channels,
         return 0;
     }
 
-    uint8_t allocation_size = (uint8_t)bytes_needed;
-    uint8_t *thumbnail = malloc(allocation_size);
+    uint8_t *thumbnail = malloc(bytes_needed);
     if (thumbnail == NULL) return 0;
 
     memcpy(thumbnail, payload.ptr, bytes_needed);

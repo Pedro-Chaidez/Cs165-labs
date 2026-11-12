@@ -6,7 +6,8 @@
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     /* TODO: pass the fuzzer-provided bytes to the parser. */
-    (void)data;
-    (void)size;
+    //(void)data;
+    //(void)size;
+		parse_image_message(data, size);
     return 0;
 }
