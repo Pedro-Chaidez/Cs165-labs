@@ -21,13 +21,19 @@
 
 ## 3. Seed corpus
 
-- seeds/info-rgb.img (IMG2;FMT=RGB;OP=INFO;AUTH=NO;W=2;H=3;DATA=;): Targets the FMT=RGB (3-channel) path and the OP=INFO operation branch.
-- seeds/check-gray.img (IMG2;FMT=GRAY;OP=CHECK;AUTH=NO;W=2;H=3;DATA=abcdef;): Targets the FMT=GRAY (1-channel) path and the OP=CHECK branch where payload.len == bytes_needed.
-- seeds/check-meta.img (IMG2;FMT=META;OP=CHECK;AUTH=NO;W=1;H=1;DATA=CS165:lab;): Targets the FMT=META path and the OP=CHECK branch requiring the CS165: prefix in DATA.
-- seeds/thumb-gray.img (IMG2;FMT=RGB;OP=THUMB;AUTH=YES;W=5;H=17;DATA=<300 'A's>;): Targets the authorized thumbnail path (OP=THUMB, AUTH=YES, non-META format) and exercises normal execution inside create_thumbnail near the 255-byte allocation boundary (bytes_needed = 255).
+- Command to create seeds/info-rgb.img: printf 'IMG2;FMT=RGB;OP=INFO;AUTH=NO;W=2;H=3;DATA=;' > seeds/info-rgb.img
+- Purpose of seeds/info-rgb.img: Targets the FMT=RGB (3-channel) path and the OP=INFO operation branch.
+- Command to create seeds/check-gray.img: printf 'IMG2;FMT=GRAY;OP=CHECK;AUTH=NO;W=2;H=3;DATA=abcdef;' > seeds/check-gray.img
+- Purpose of seeds/check-gray.img: Targets the FMT=GRAY (1-channel) path and the OP=CHECK branch where payload.len == bytes_needed.
+- Command to create seeds/check-meta.img: printf 'IMG2;FMT=META;OP=CHECK;AUTH=NO;W=1;H=1;DATA=CS165:lab;' > seeds/check-meta.img
+- Purpose of seeds/check-meta.img: Targets the FMT=META path and the OP=CHECK branch requiring the CS165: prefix in DATA.
+- Command to create seeds/thumb-gray.img: python3 -c 'import sys; sys.stdout.write("IMG2;FMT=RGB;OP=THUMB;AUTH=YES;W=5;H=17;DATA=" + "A"*300 + ";")' > seeds/thumb-gray.img
+- Purpose of seeds/thumb-gray.img: Targets the authorized thumbnail path (OP=THUMB, AUTH=YES, non-META format) and exercises normal execution inside create_thumbnail near the 255-byte allocation boundary (bytes_needed = 255).
 
 ## 4. Fuzzing without a dictionary
 
+- Command to populate work/no-dict-corpus: cp seeds/*.img work/no-dict-corpus/
+- Command to run without dictionary: ./fuzz_target -max_total_time=30 -artifact_prefix=work/no-dict-artifacts/ work/no-dict-corpus
 - Run duration: 31s (2,875,711 runs)
 - Final cov: 89
 - Final ft: 274
@@ -36,6 +42,10 @@
 
 ## 5. Fuzzing with a dictionary
 
+- Command to reset work directories: make reset
+- Command to populate work/dict-corpus from seeds: cp seeds/*.img work/dict-corpus/
+- First dictionary command tried (with default input reduction): ./fuzz_target -dict=tokens.dict -max_total_time=30 -artifact_prefix=work/dict-artifacts/ work/dict-corpus
+- Final dictionary command used to generate the crash artifact and evolve work/dict-corpus: ./fuzz_target -reduce_inputs=0 -dict=tokens.dict -max_total_time=30 -artifact_prefix=work/dict-artifacts/ work/dict-corpus
 - Run duration: <1s (16,000 runs until crash)
 - Final cov: 89
 - Final ft: 220
@@ -46,10 +56,14 @@
 
 - Sanitizer finding: AddressSanitizer: heap-buffer-overflow (WRITE of size 306 at 0 bytes after a 50-byte heap region allocated via (uint8_t)bytes_needed).
 - Relevant function: create_thumbnail in image.c (specifically the memcpy(thumbnail, payload.ptr, bytes_needed) call on line 124 after malloc(allocation_size) on line 121).
-- Reproduction outside a fuzzing campaign: Replayed the crash artifact as a single input using ./image-asan < work/dict-artifacts/crash-6b4ffb0ae96c525bdf517589c9ba3d7f57222c3a and ./fuzz_target work/dict-artifacts/crash-6b4ffb0ae96c525bdf517589c9ba3d7f57222c3a, both of which deterministically reproduced the identical AddressSanitizer heap-buffer-overflow report in create_thumbnail.
+- Command to reproduce crash with image-asan: ./image-asan < work/dict-artifacts/crash-6b4ffb0ae96c525bdf517589c9ba3d7f57222c3a
+- Command to reproduce crash with fuzz_target: ./fuzz_target work/dict-artifacts/crash-6b4ffb0ae96c525bdf517589c9ba3d7f57222c3a
+- Reproduction result: Both commands deterministically reproduced the identical AddressSanitizer heap-buffer-overflow report in create_thumbnail outside of a fuzzing campaign.
 
 ## 7. Crash minimization
 
+- Command used to minimize the crash artifact: ./fuzz_target -minimize_crash=1 -exact_artifact_path=minimized-crash.img -max_total_time=30 work/dict-artifacts/crash-6b4ffb0ae96c525bdf517589c9ba3d7f57222c3a
+- Command to check byte counts: wc -c work/dict-artifacts/crash-6b4ffb0ae96c525bdf517589c9ba3d7f57222c3a minimized-crash.img
 - Original crash size: 358 bytes
 - Minimized crash size: 351 bytes
 - Required part 1: The IMG2; header at the start of the message.
@@ -60,6 +74,8 @@
 
 ## 8. Corpus minimization
 
+- Command used to minimize work/dict-corpus into work/min-corpus: ./fuzz_target -merge=1 work/min-corpus work/dict-corpus
+- Command to count corpus files before and after minimization: ls -1 work/dict-corpus | wc -l && ls -1 work/min-corpus | wc -l
 - Corpus size before minimization: 61 files
 - Corpus size after minimization: 48 files (6125 bytes)
 - What the minimized corpus preserves: Corpus minimization (-merge=1) preserves the union of all coverage edges and coverage features (cov: 89 and ft: 220) discovered across the original 61-file corpus while selecting a smaller subset of 48 files that achieve that exact same coverage.
@@ -69,5 +85,7 @@
 
 - Code change: In create_thumbnail (image.c), removed the narrowing cast uint8_t allocation_size = (uint8_t)bytes_needed; and passed bytes_needed (type size_t) directly to malloc(bytes_needed).
 - Why it prevents the error: width and height can each be up to 64 and channels can be up to 3, so bytes_needed can reach 12,288 bytes; casting bytes_needed to uint8_t truncated any value >= 256 modulo 256, causing malloc to allocate a buffer smaller than bytes_needed before memcpy copied bytes_needed bytes into it, whereas malloc(bytes_needed) ensures the heap buffer always matches the exact number of bytes copied by memcpy.
-- Validation and regression results: Rebuilt image, image-asan, and fuzz_target cleanly, and make test passed all normal-input tests (accepted for info.img, gray-check.img, meta-check.img, and rejected for invalid.img).
-- Final sanitizer results: Replaying both the original 358-byte crash artifact and the 351-byte minimized-crash.img through ./image-asan and ./fuzz_target completed with zero sanitizer errors (accepted), and a final 30-second sanitizer-enabled fuzzing campaign against the repaired binary completed without triggering any crashes.
+- Commands to rebuild and run regression tests: make all && make test
+- Commands to verify crash artifacts after fix: ./image-asan < work/dict-artifacts/crash-6b4ffb0ae96c525bdf517589c9ba3d7f57222c3a && ./image-asan < minimized-crash.img && ./fuzz_target work/dict-artifacts/crash-6b4ffb0ae96c525bdf517589c9ba3d7f57222c3a minimized-crash.img
+- Command for final sanitizer-enabled fuzzing campaign: ./fuzz_target -dict=tokens.dict -max_total_time=30 work/min-corpus
+- Final sanitizer results: Replaying both the original 358-byte crash artifact and the 351-byte minimized-crash.img through ./image-asan and ./fuzz_target completed with zero sanitizer errors (accepted), and the final 30-second sanitizer-enabled fuzzing campaign against the repaired binary completed without triggering any crashes.
